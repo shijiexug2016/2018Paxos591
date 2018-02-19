@@ -8,12 +8,7 @@ port = 6662
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((host, port))
-message = {}
-message['message_type'] = 4
-message['client_id'] = 0
-message['client_seq'] = 0
-message['command'] = 'hello world'
-json_data = json.dumps(message)
-s.send(json_data.encode())
-print(s.recv(1024).decode())
+message = getRequestMsg(0, "hello world", 0)
+s.send(message.encode(CODE_METHOD))
+print(s.recv(1024).decode(CODE_METHOD))
 s.close()
