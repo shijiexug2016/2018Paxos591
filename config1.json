@@ -1,5 +1,19 @@
 {
   "f" : 1,
   "skip_slot" : 0,
-  "message_loss" : 0
+  "message_loss" : 0,
+  "replicas" : [
+    [
+      "localhost",
+      6662
+    ],
+    [
+      "localhost",
+      6663
+    ],
+    [
+      "localhost",
+      6664
+    ]
+  ]
 }
