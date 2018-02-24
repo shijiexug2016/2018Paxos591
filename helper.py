@@ -19,36 +19,42 @@ def getIAMLeaderObj(view):
     msg_obj = get_msg_obj(message_type='IAmLeader', view=view)
     return msg_obj
 
-def getReplyObj(seq_num, leader_id, client_id):
-    msg_obj = get_msg_obj(message_type='Reply', seq_num=seq_num, leader_id=leader_id, client_id=client_id)
+def getReplyObj(client_id, client_seq, seq_num, leader_id):
+    msg_obj = get_msg_obj(message_type='Reply', client_id=client_id, client_seq=client_seq, seq_num=seq_num, leader_id=leader_id)
     return msg_obj
 
 def getRequestObj(client_id, command, client_seq):
     msg_obj = get_msg_obj(message_type='Request', client_id=client_id, command=command, client_seq=client_seq)
     return msg_obj
 
-def getYouAreLeaderObj(replica_id, client_id, client_seq, pre_view_id, command, seq_num, has_previous):
-    msg_obj = get_msg_obj(message_type='YouAreLeader', replica_id=replica_id, has_previous=has_previous, client_id=client_id,
-                          client_seq=client_seq, pre_view_id=pre_view_id, seq_num=seq_num, command=command)
+def getYouAreLeaderObj(replica_id, view, prev_accepts):
+    msg_obj = get_msg_obj(message_type='YouAreLeader', view=view, replica_id=replica_id, prev_accepts=prev_accepts)
     return msg_obj
 
-def getCommandObj(client_id, client_seq, client_addr, view, seq_num, command):
+def getCommandObj(client_id, client_seq, client_addr, view, seq_num, command, is_noop=False):
     msg_obj = get_msg_obj(message_type='Command', client_id=client_id, client_seq=client_seq, client_addr=tuple(client_addr), view=view,
-                          seq_num=seq_num, command=command)
+                          seq_num=seq_num, command=command, is_noop=is_noop)
     return msg_obj
 
+# def getAcceptObj(replica_id, view, client_id, client_seq, seq_num):
+#     msg_obj= get_msg_obj(message_type='Accept', replica_id=replica_id, view=view, client_id=client_id, client_seq=client_seq,
+#                          seq_num=seq_num)
+#     return msg_obj
 
-def getAcceptObj(replica_id, view, client_id, client_seq, seq_num):
-    msg_obj= get_msg_obj(message_type='Accept', replica_id=replica_id, view=view, client_id=client_id, client_seq=client_seq,
-                         seq_num=seq_num)
+def getAcceptObj(replica_id, command_obj):
+    msg_obj= get_msg_obj(message_type='Accept', replica_id=replica_id, command_obj=command_obj)
     return msg_obj
+
+def getExecutionObj(client_id=-1, client_seq=-1, command='', is_noop=True):
+    return get_msg_obj(client_id=client_id, client_seq=client_seq, command=command, is_noop=is_noop)
+
 
 SEND_EXCEPTION_LOG = '{} send to {} exception {}'
 RECV_EXCEPTION_LOG = '{} recv exception {}'
 SEND_FAIL_LOG = '{} failed to send to {}'
 RECV_FAIL_LOG = '{} failed to recv'
 
-def send_msg(sock, message, address, attempts, something_else, retrys = 3):
+def send_msg(sock, message, address, attempts, retrys = 3):
     if attempts <= retrys:
         try:
             sock.sendto(message.encode(), address)
@@ -57,13 +63,12 @@ def send_msg(sock, message, address, attempts, something_else, retrys = 3):
             logger.info(SEND_EXCEPTION_LOG.format(sock.getsockname(), address, e))
             attempts += 1
             sock.settimeout(TIMEOUT * attempts)
-            send_msg(sock, message, address, attempts, something_else)
+            send_msg(sock, message, address, attempts, retrys)
     else:
-        # TODO: do something with this failure
         logger.info(SEND_FAIL_LOG.format(sock.getsockname(), address))
         return False
 
-def recv_msg(sock, attempts, something_else, retrys = 3):
+def recv_msg(sock, attempts, retrys = 3):
     msg = ''
     if attempts <= retrys:
         try:
@@ -77,9 +82,8 @@ def recv_msg(sock, attempts, something_else, retrys = 3):
             logger.info(RECV_EXCEPTION_LOG.format(sock.getsockname(), e))
             attempts += 1
             sock.settimeout(TIMEOUT * attempts)
-            recv_msg(sock, attempts, something_else)
+            recv_msg(sock, attempts, retrys)
     else:
-        # TODO: do something with this failure
         logger.info(RECV_FAIL_LOG.format(sock.getsockname()))
         return None
 

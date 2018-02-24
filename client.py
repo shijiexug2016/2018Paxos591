@@ -2,18 +2,16 @@ import socket
 import time
 import json
 from helper import *
+import sys
 
-host = 'localhost'
-port = 6666
+host = '127.0.0.1'
+port = 6662
 
-message = 'hello from client'
+
 
 TIMEOUT = 0.2
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.settimeout(TIMEOUT)
-
-
-s.sendto(message.encode(), (host, port))
+s.settimeout(None)
 
 
 def my_recvfrom(attempt, retrys = 3):
@@ -29,8 +27,23 @@ def my_recvfrom(attempt, retrys = 3):
     else:
         print('lalalala')
 
+cid = int(sys.argv[1])
+for i in range(5):
+    finished = False
+    message = getRequestObj(cid, '{} hello {}'.format(cid, i), i)
+    message = json.dumps(message)
+    while not finished:
+        print('try resend')
+        s.sendto(message.encode(), (host, port))
+        data, addr = s.recvfrom(1024)
+        print(data.decode())
+        try:
+            reply_obj = json.loads(data.decode())
+        except:
+            pass
+        if reply_obj['message_type'] == 'Reply' and reply_obj['client_id'] == cid and reply_obj['seq_num'] == i:
+            finished = True
 
-my_recvfrom(0)
 #
 # try:
 #     data, addr = s.recvfrom(1024)
