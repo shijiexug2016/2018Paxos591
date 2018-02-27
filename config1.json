@@ -1,7 +1,7 @@
 {
   "f" : 1,
   "skip_slot" : 5,
-  "message_loss" : 5,
+  "message_loss" : 0,
   "replicas" : [
     [
       "127.0.0.1",

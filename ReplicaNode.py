@@ -124,6 +124,7 @@ class Replica:
 
         logger.info('{} view is {}, thinks leader is {}'.format(self.id, self.view, self.view % len(self.replicas)))
         logger.info('{} elected status is {}'.format(self.id, self.elected))
+        logger.info('{} reelection status is {}'.format(self.id, self.is_in_reelection))
 
         if self.id == self.get_leader_id(self.view) and self.elected:
             # skip slot
