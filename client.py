@@ -1,65 +1,101 @@
-import socket
-import time
-import json
 from helper import *
 import sys
 
-host = '127.0.0.1'
-port = 6662
+class Client:
+    HOST = '127.0.0.1'
+    DEFAULT_PORT = 7933
+    TIMEOUT = 1
+
+    def __init__(self, config_file, id):
+        with open(config_file, 'r') as f:
+            configs = json.load(f)
+            self.replicas = configs['replicas']
+        self.replicas = [tuple(replica) for replica in self.replicas]
+        self.id = id
+        self.seq = 0
+        self.view = 0
+        self.cur_timeout = Client.TIMEOUT
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.settimeout(self.cur_timeout)
+        self.socket.bind((Client.HOST, Client.DEFAULT_PORT + self.id))
 
 
+    def request_consensus(self, request_msg):
+        leader_id = self.view % len(self.replicas)
+        request_obj = getRequestObj(self.id, request_msg, self.seq)
+        request_str = json.dumps(request_obj)
+        self.socket.sendto(request_str.encode(CODE_METHOD), self.replicas[leader_id])
+        finished = False
+        while not finished:
+            try:
+                data, addr = self.socket.recvfrom(BUFFER_SIZE)
+                print(data.decode(CODE_METHOD))
+                reply_obj = json.loads(data.decode(CODE_METHOD))
+                print('{} received a reply seq === {}'.format(self.id, request_obj['client_seq']))
+                if reply_obj['message_type'] == 'Reply' and reply_obj['client_id'] == self.id:
+                    if reply_obj['client_seq'] == self.seq:
+                        print('{} received a finished reply message {}'.format(self.id, reply_obj))
+                        finished = True
+                    elif reply_obj['client_seq'] > self.seq:
+                        print('{} have record before in the system'.format(self.id))
+                        self.seq = reply_obj['client_seq'] + 1
+                        print('{} send a request with a new seq number {}'.format(self.id, self.seq))
+                        request_obj = getRequestObj(self.id, request_msg, self.seq)
+                        request_str = json.dumps(request_obj)
+                        self.socket.sendto(request_str.encode(CODE_METHOD), self.replicas[leader_id])
+            except socket.timeout:
+                print('{} get timeout !!!'.format(self.id))
+                self.cur_timeout += Client.TIMEOUT
+                print('{} increment cur_timeout to {}'.format(self.id, self.cur_timeout))
+                self.socket.settimeout(self.cur_timeout)
+                self.view += 1
+                print('{} rebroadcast request {} to new leader {}'.format(self.id, request_str))
+                for replica in self.replicas:
+                    self.socket.sendto(request_str.encode(CODE_METHOD), replica)
+        self.seq += 1
+        self.cur_timeout = TIMEOUT
+        self.socket.settimeout(self.cur_timeout)
 
-TIMEOUT = 0.2
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.settimeout(None)
-
-
-def my_recvfrom(attempt, retrys = 3):
-    if attempt <= retrys:
-        try:
-            data, addr = s.recvfrom(1024)
-            print(data.decode())
-        except socket.timeout as e:
-            print(e)
-            attempt += 1
-            s.settimeout(TIMEOUT * attempt)
-            my_recvfrom(attempt, retrys)
-    else:
-        print('lalalala')
-
-cid = int(sys.argv[1])
-for i in range(5):
-    finished = False
-    message = getRequestObj(cid, '{} hello {}'.format(cid, i), i)
-    message = json.dumps(message)
-    while not finished:
-        print('try resend')
-        s.sendto(message.encode(), (host, port))
-        data, addr = s.recvfrom(1024)
-        print(data.decode())
-        try:
-            reply_obj = json.loads(data.decode())
-        except:
-            pass
-        if reply_obj['message_type'] == 'Reply' and reply_obj['client_id'] == cid and reply_obj['seq_num'] == i:
-            finished = True
-
+# for i in range(1500):
+#     leader_id = client_view % len(replicas)
+#     finished = False
+#     message = getRequestObj(cid, 'id:{}, seq:{}'.format(cid, i), i)
+#     message = json.dumps(message)
+#     s.sendto(message.encode(CODE_METHOD), replicas[leader_id])
+#     while not finished:
+#         try:
+#             data, addr = s.recvfrom(1024)
+#             print(data.decode(CODE_METHOD))
+#             reply_obj = json.loads(data.decode())
+#             if reply_obj['message_type'] == 'Reply' and reply_obj['client_id'] == cid and reply_obj['client_seq'] == i:
+#                 print('{} received a message {}'.format(cid, reply_obj))
+#                 finished = True
+#         except socket.timeout as e:
+#             cur_timeout += TIMEOUT
+#             print('{} timeout, cur_timeout === {}'.format(cid, cur_timeout))
+#             s.settimeout(cur_timeout)
+#             client_view += 1
+#             new_leader_id = client_view % len(replicas)
+#             print('{} increment view to {}'.format(cid, client_view))
+#             print('{} resend message {} to all'.format(cid, message))
+#             s.sendto(message.encode(CODE_METHOD), replicas[new_leader_id])
+#             # for i in range(len(replicas)):
 #
-# try:
-#     data, addr = s.recvfrom(1024)
-# except socket.timeout as e:
-#     print(e)
+# s.close()
 
-# print(data.decode())
-
-# for i in range(2):
-#     message = getRequestMsg(0, "hello world", 0)
-#     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#     try:
-#         s.connect((host, port))
-#         s.send(message.encode(CODE_METHOD))
-#         print(s.recv(1024).decode(CODE_METHOD))
-#     except Exception as e:
-#         print(e)
-#     #
-#     s.close()
+if __name__ == '__main__':
+    mode = sys.argv[1]
+    id = int(sys.argv[2])
+    client = Client('config1.json', id)
+    DEFAULT_MSG = 'cid:{}, cseq:{}'
+    if mode == 'm':
+        while True:
+            user_input = input('Enter your message or \"exit\" to exit: ')
+            if user_input == 'exit':
+                print('Bye user {}'.format(id))
+                break
+            else:
+                client.request_consensus(user_input)
+    elif mode == 's':
+        for i in range(500):
+            client.request_consensus(DEFAULT_MSG.format(id, i))

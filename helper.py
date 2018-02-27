@@ -1,6 +1,7 @@
 import socket
 import json
 import logging
+import sys
 
 TIMEOUT = 0.2
 logging.basicConfig(level=logging.DEBUG)
@@ -19,8 +20,8 @@ def getIAMLeaderObj(view):
     msg_obj = get_msg_obj(message_type='IAmLeader', view=view)
     return msg_obj
 
-def getReplyObj(client_id, client_seq, seq_num, leader_id):
-    msg_obj = get_msg_obj(message_type='Reply', client_id=client_id, client_seq=client_seq, seq_num=seq_num, leader_id=leader_id)
+def getReplyObj(client_id, client_seq, seq_num, leader_id, command):
+    msg_obj = get_msg_obj(message_type='Reply', client_id=client_id, client_seq=client_seq, seq_num=seq_num, leader_id=leader_id, command=command)
     return msg_obj
 
 def getRequestObj(client_id, command, client_seq):
@@ -45,8 +46,8 @@ def getAcceptObj(replica_id, command_obj):
     msg_obj= get_msg_obj(message_type='Accept', replica_id=replica_id, command_obj=command_obj)
     return msg_obj
 
-def getExecutionObj(client_id=-1, client_seq=-1, command='', is_noop=True):
-    return get_msg_obj(client_id=client_id, client_seq=client_seq, command=command, is_noop=is_noop)
+def getExecutionObj(client_id=-1, client_seq=-1, client_addr=(-1, -1), command='', is_noop=True):
+    return get_msg_obj(client_id=client_id, client_seq=client_seq, client_addr=client_addr, command=command, is_noop=is_noop)
 
 
 SEND_EXCEPTION_LOG = '{} send to {} exception {}'
