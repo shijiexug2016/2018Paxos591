@@ -10,8 +10,6 @@ for log in logs:
 
 for i in range(len(msgs)):
     for j in range(i + 1, len(msgs)):
-        if not msgs[i] == msgs[j]:
+        min_len = min(len(msgs[i]), len(msgs[j]))
+        if not msgs[i][:min_len] == msgs[j][:min_len]:
             print('Found inconsistent message {} and {}'.format(i, j))
-
-
-
