@@ -49,39 +49,12 @@ class Client:
                 print('{} increment cur_timeout to {}'.format(self.id, self.cur_timeout))
                 self.socket.settimeout(self.cur_timeout)
                 self.view += 1
-                print('{} rebroadcast request {} to new leader {}'.format(self.id, request_str))
+                print('{} rebroadcast request {}'.format(self.id, request_str))
                 for replica in self.replicas:
                     self.socket.sendto(request_str.encode(CODE_METHOD), replica)
         self.seq += 1
         self.cur_timeout = TIMEOUT
         self.socket.settimeout(self.cur_timeout)
-
-# for i in range(1500):
-#     leader_id = client_view % len(replicas)
-#     finished = False
-#     message = getRequestObj(cid, 'id:{}, seq:{}'.format(cid, i), i)
-#     message = json.dumps(message)
-#     s.sendto(message.encode(CODE_METHOD), replicas[leader_id])
-#     while not finished:
-#         try:
-#             data, addr = s.recvfrom(1024)
-#             print(data.decode(CODE_METHOD))
-#             reply_obj = json.loads(data.decode())
-#             if reply_obj['message_type'] == 'Reply' and reply_obj['client_id'] == cid and reply_obj['client_seq'] == i:
-#                 print('{} received a message {}'.format(cid, reply_obj))
-#                 finished = True
-#         except socket.timeout as e:
-#             cur_timeout += TIMEOUT
-#             print('{} timeout, cur_timeout === {}'.format(cid, cur_timeout))
-#             s.settimeout(cur_timeout)
-#             client_view += 1
-#             new_leader_id = client_view % len(replicas)
-#             print('{} increment view to {}'.format(cid, client_view))
-#             print('{} resend message {} to all'.format(cid, message))
-#             s.sendto(message.encode(CODE_METHOD), replicas[new_leader_id])
-#             # for i in range(len(replicas)):
-#
-# s.close()
 
 if __name__ == '__main__':
     mode = sys.argv[1]

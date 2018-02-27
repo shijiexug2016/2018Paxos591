@@ -4,7 +4,7 @@ import logging
 import sys
 
 TIMEOUT = 0.2
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 logger = logging.getLogger('Paxos')
 READY_LOG = 'replica {} is ready at {}'
 SEND_LOG = '{} send message: \n\t{} \nto {}'

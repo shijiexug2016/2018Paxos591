@@ -122,7 +122,7 @@ class Replica:
             send_msg(self.socket, reply_str, client_addr, 0)
             return
 
-        logger.info('{} thinks leader is {}'.format(self.id, self.view % len(self.replicas)))
+        logger.info('{} view is {}, thinks leader is {}'.format(self.id, self.view, self.view % len(self.replicas)))
         logger.info('{} elected status is {}'.format(self.id, self.elected))
 
         if self.id == self.get_leader_id(self.view) and self.elected:
@@ -213,6 +213,14 @@ class Replica:
             self.prev_proposals = {}
             self.hold_on_requests = []
             self.view = view
+            new_leader_id = self.get_leader_id(self.view)
+            last_accepted_log = self.accepted_log[len(self.executions): len(self.accepted_log)]
+            you_are_leader_obj = getYouAreLeaderObj(self.id, self.view, last_accepted_log)
+            you_are_leader_str = json.dumps(you_are_leader_obj)
+            logger.info('\t{} send you are leader message with recent accepted log {} to {}'.format(self.id, last_accepted_log, new_leader_id))
+            if not send_msg(self.socket, you_are_leader_str, self.replicas[new_leader_id], 0):
+                # leader failed
+                pass
             return
 
         # received you are leader message correctly
@@ -376,5 +384,6 @@ class Replica:
 
 if __name__ == '__main__':
     id = int(sys.argv[1])
-    replica = Replica('config1.json', id)
+    config_file = sys.argv[2]
+    replica = Replica(config_file, id)
     replica.listen()
